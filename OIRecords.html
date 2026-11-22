@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="zh-CN">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OJ评测记录管理器</title>
+  <style>
+:root{
+    --bg:#121212;
+    --panel:#1e1e1e;
+    --card:#27272a;
+    --text:#eee;
+    --text2:#aaa;
+    --border:#444;
+    --primary:#2563eb;
+    --danger:#dc2626;
+    --success:#16a34a;
+    --warn:#f59e0b;
+    --tagbg:#334155;
+    --feature-tag-bg:#475569;
+}
+.light{
+    --bg:#ffffff;
+    --panel:#f3f4f6;
+    --card:#e5e7eb;
+    --text:#111;
+    --text2:#666;
+    --border:#ccc;
+    --primary:#2563eb;
+    --danger:#dc2626;
+    --success:#16a34a;
+    --warn:#f59e0b;
+    --tagbg:#dbeafe;
+    --feature-tag-bg:#e0e7ff;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, -apple-system, sans-serif}
+body{background:var(--bg);color:var(--text);padding:14px;max-width:1400px;margin:0 auto;transition:0.2s}
+h1,h2,h3{margin:12px 0;color:var(--text)}
+.container{display:grid;grid-template-columns:340px 1fr;gap:16px}
+@media(max-width:960px){.container{grid-template-columns:1fr}}
+.panel{background:var(--panel);border-radius:10px;padding:16px;margin-bottom:14px}
+label{display:block;margin:8px 0 4px;color:var(--text2);font-size:14px}
+input,textarea,select{width:100%;padding:9px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px}
+button{padding:9px 14px;border:none;border-radius:6px;background:var(--primary);color:#fff;cursor:pointer;margin:4px;font-size:14px}
+button:hover{filter:brightness(1.1)}
+button.danger{background:var(--danger)}
+button.success{background:var(--success)}
+button.warn{background:var(--warn)}
+.flex-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.tag{display:inline-block;background:var(--tagbg);padding:3px 8px;border-radius:4px;margin:2px;font-size:12px}
+.feature-tag{display:inline-block;background:var(--feature-tag-bg);padding:3px 8px;border-radius:4px;margin:2px;font-size:12px}
+.tag-del{cursor:pointer;margin-left:4px;color:#f87171}
+.record-item{background:var(--card);padding:10px;border-radius:8px;margin:8px 0;border-left:4px solid #666}
+.status-AC{border-left-color:#22c55e}
+.status-WA,.status-PC,.status-RE,.status-CE,.status-PE,.status-OLE,.status-MLE,.status-TLE,.status-UKE{border-left-color:#ef4444}
+.mark-wrong{border-left-color:#ef4444!important}
+.mark-suspect{border-left-color:#f59e0b!important}
+.stat-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)}
+.heatmap{display:grid;grid-template-columns:repeat(53,12px);gap:2px;flex-wrap:wrap}
+.heat-cell{width:12px;height:12px;border-radius:2px;background:#444}
+.light .heat-cell{background:#ddd}
+.heat-1{background:#166534}.heat-2{background:#15803d}.heat-3{background:#16a34a}.heat-4{background:#22c55e}.heat-5{background:#4ade80}
+.light .heat-1{background:#86efac}.light .heat-2{background:#4ade80}.light .heat-3{background:#22c55e}.light .heat-4{background:#16a34a}.light .heat-5{background:#14532d}
+.tabs{display:flex;gap:4px;margin-bottom:12px}
+.tab{padding:8px 12px;background:var(--card);border-radius:6px;cursor:pointer}
+.tab.active{background:var(--primary)}
+.hidden{display:none}
+small{color:var(--text2);font-size:12px}
+textarea{min-height:80px;resize:vertical}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:99}
+.modal.show{display:flex}
+.modal-content{background:var(--panel);padding:20px;border-radius:10px;width:90%;max-width:700px;max-height:85vh;overflow:auto}
+.test-grid{display:grid;grid-template-columns:repeat(20, 24px);gap:3px}
+.test-cell{width:24px;height:24px;border-radius:3px;cursor:pointer;text-align:center;font-size:11px;color:#fff}
+.t-ac{background:#22c55e}
+.t-wa{background:#ef4444}
+.t-unk{background:#555}
+.latex-block{overflow-x:auto;padding:8px;margin:6px 0;background:var(--bg);border-radius:6px}
+.solution-item{border:1px solid var(--border);border-radius:8px;padding:10px;margin:8px 0}
+.solution-title{font-weight:bold;margin-bottom:6px}
+.solution-ctrl{margin-top:6px}
+.markdown-render{line-height:1.6}
+.markdown-render h1{font-size:22px;margin:8px 0}
+.markdown-render h2{font-size:20px;margin:8px 0}
+.markdown-render h3{font-size:18px;margin:8px 0}
+.markdown-render pre{background:var(--bg);padding:8px;border-radius:6px;overflow-x:auto}
+.markdown-render code{font-family:monospace}
+.markdown-render blockquote{border-left:3px solid var(--primary);padding-left:8px;color:var(--text2)}
+</style>
+  <!-- Markdown + LaTeX 渲染依赖 -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+ </head>
+ <body>
+  <div class="flex-row" style="justify-content:space-between;align-items:center">
+   <h1>OJ评测记录管理器</h1>
+   <button id="toggleTheme">🌓 切换深浅色</button>
+  </div>
+  <div class="container">
+   <div class="left">
+    <div class="panel">
+     <div class="tabs">
+      <div class="tab active" data-tab="manual">手动录入</div>
+      <div class="tab" data-tab="url">URL导入</div>
+     </div>
+     <div id="tab-manual">
+      <label>题目标题</label> <input id="title" placeholder="例如：843. n皇后"> <label>题目链接URL</label> <input id="problemUrl" placeholder="https://..."> <label>题面（支持Markdown+LaTeX）</label> <textarea id="desc" placeholder="粘贴题面，支持 $E=mc^2$ 以及Markdown语法"></textarea> <label>时间复杂度（自定义）</label> <input id="timeComplex" placeholder="例如 O(n log n)、O(2^n)、O(n^2)">
+      <div class="grid-3">
+       <div>
+        <label>难度文字</label> <select id="diffText"> <option value="">未设置</option> <option>简单</option><option>中等</option><option>困难</option><option>入门</option><option>普及-</option><option>普及</option><option>普及+/提高-</option><option>提高</option><option>提高+/省选-</option><option>省选/NOI-</option><option>NOI/NOI+/CTS</option><option>其他</option> </select>
+       </div>
+       <div>
+        <label>难度数值（0~5000整数）</label> <input id="diffVal" type="number" min="0" max="5000" step="1" placeholder="0-5000">
+       </div>
+       <div>
+        <label>评测状态</label> <input id="statusRaw" placeholder="AC / WA / RE..." value="AC">
+       </div>
+      </div>
+      <div class="grid-2">
+       <div>
+        <label>标记类型</label> <select id="markType"> <option value="normal">普通</option> <option value="wrong">错题</option> <option value="suspect">疑似错题</option> </select>
+       </div>
+       <div>
+        <label>总分</label> <input id="totalScore" type="number" min="0" max="1000" value="100">
+       </div>
+      </div>
+      <label>平台/比赛分类（有细分项建议优先选择细分项）</label> <select id="platform"></select> <label>算法标签（下拉快速选择，逗号追加）</label>
+      <div class="flex-row">
+       <select id="tagPreset"> <option value="">快速选择标签</option> </select>
+       <button onclick="appendTag()">添加标签</button>
+      </div>
+      <input id="tagsRaw" placeholder="多个标签逗号分隔"> <label>题目特点标签</label>
+      <div class="flex-row">
+       <select id="featureTagPreset"> <option value="">快速选择特点标签</option> </select>
+       <button onclick="appendFeatureTag()">添加特点标签</button>
+      </div>
+      <input id="featureTagsRaw" placeholder="多个特点标签逗号分隔"> <label>评测时间</label> <input id="submitTime" type="datetime-local">
+      <div class="flex-row" style="margin-top:10px">
+       <button onclick="addRecord()">✅ 添加记录</button>
+      </div>
+     </div>
+     <div id="tab-url" class="hidden">
+      <label>评测结果URL</label> <input id="importUrl" placeholder="https://xxx/result/123"> <small>自动捕获HTTP错误码，失败会返回错误信息</small>
+      <div class="flex-row" style="margin-top:10px">
+       <button onclick="fetchUrlResult()">🔗 导入URL评测结果</button>
+      </div>
+      <div id="urlImportMsg" style="margin-top:10px"></div>
+     </div>
+    </div>
+    <div class="panel">
+     <h3>💾 数据管理</h3>
+     <div class="flex-row">
+      <button onclick="exportData()">导出JSON</button>
+      <button onclick="document.getElementById('importFile').click()">导入JSON</button>
+      <input type="file" id="importFile" accept=".json" hidden onchange="importData(this)">
+      <button onclick="migrateLocalStorage()">迁移旧LocalStorage</button>
+      <button class="danger" onclick="clearAll()">清空全部</button>
+     </div>
+     <h3 style="margin-top:12px">🏷️ 自定义平台/比赛</h3>
+     <div class="flex-row">
+      <input id="newPlatform" placeholder="新增平台名称">
+      <button onclick="addCustomPlatform()">添加</button>
+     </div>
+    </div>
+    <div class="panel">
+     <h3>🔍 筛选</h3>
+     <div class="grid-2">
+      <select id="filterPlatform"><option value="">全部平台</option></select> <select id="filterStatus"><option value="">全部状态</option></select>
+     </div>
+     <div class="grid-2">
+      <select id="filterTag"><option value="">全部算法标签</option></select> <select id="filterFeatureTag"><option value="">全部特点标签</option></select>
+     </div>
+     <div class="grid-2">
+      <select id="filterMark"><option value="">全部标记</option><option value="normal">普通</option><option value="wrong">错题</option><option value="suspect">疑似错题</option></select>
+     </div>
+     <div class="flex-row" style="margin-top:8px">
+      <button onclick="renderRecords()">应用筛选</button>
+      <button onclick="resetFilter()">重置筛选</button>
+     </div>
+    </div>
+   </div>
+   <div class="right">
+    <div class="panel">
+     <div class="tabs">
+      <div class="tab active" data-view="records">记录列表</div>
+      <div class="tab" data-view="stats">统计 &amp; 占比</div>
+      <div class="tab" data-view="heat">提交热力图</div>
+      <div class="tab" data-view="wrong">错题/疑似错题</div>
+      <div class="tab" data-view="solution">题解管理</div>
+     </div>
+     <div id="view-records">
+      <div id="recordList"></div>
+     </div>
+     <div id="view-stats" class="hidden">
+      <h3>📊 评测状态占比</h3>
+      <div id="statStatus"></div>
+      <h3 style="margin-top:12px">🏷️ 算法标签统计</h3>
+      <div id="statTag"></div>
+      <h3 style="margin-top:12px">✨ 题目特点标签统计</h3>
+      <div id="statFeatureTag"></div>
+      <h3 style="margin-top:12px">🖥️ 平台统计</h3>
+      <div id="statPlatform"></div>
+     </div>
+     <div id="view-heat" class="hidden">
+      <h3>🔥 提交热力图（近一年）</h3>
+      <div id="heatmapBox" class="heatmap"></div>
+      <small style="margin-top:8px;display:block">颜色越深，当日提交越多</small>
+     </div>
+     <div id="view-wrong" class="hidden">
+      <div id="wrongList"></div>
+     </div>
+     <div id="view-solution" class="hidden">
+      <label>选择题目</label> <select id="solSelect" onchange="renderSolutionPanel()"></select>
+      <div id="solPanel"></div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <!-- 测试点弹窗 -->
+  <div class="modal" id="testModal">
+   <div class="modal-content">
+    <div class="flex-row" style="justify-content:space-between">
+     <h3>🧪 测试点管理</h3>
+     <button onclick="closeTestModal()">关闭</button>
+    </div>
+    <small>点击格子切换 AC / WA / 未知；支持撤销、恢复默认（默认200点，全部AC）</small>
+    <div class="flex-row" style="margin:10px 0">
+     <button onclick="undoTest()">↩️ 撤销</button>
+     <button class="warn" onclick="resetTest()">🔄 恢复默认</button>
+     <span id="testScoreInfo"></span>
+    </div>
+    <div id="testGridBox" class="test-grid"></div>
+   </div>
+  </div>
+  <script>
+// ========== 算法标签池（原标签，特点标签拆分出去） ==========
+const TAG_PRESET = [
+    "语法","语言入门","顺序结构","分支结构","循环结构","循环","数组字符串","字符串","结构体","函数","递归","枚举","模拟","暴力","打表","位运算","离散化","前缀和","差分","尺取法/双指针","二分","二分查找","二分答案","三分","倍增","ST表","RMQ","贪心","构造","分治","高精度","排序","快速排序","归并排序","堆排序","计数排序","基数排序","桶排序","希尔排序","冒泡排序","插入排序",
+    "BFS","DFS","回溯","剪枝","Alpha-Beta剪枝","记忆化搜索","迭代加深搜索IDS","IDA*","A*","双向BFS","折半搜索Meet-in-the-middle","模拟退火","舞蹈链DancingLinks",
+    "DP","动态规划DP","线性DP","背包DP","01背包","完全背包","多重背包","分组背包","混合背包","区间DP","树形DP","状压DP","数位DP","轮廓线DP","插头DP","概率DP","计数DP","DAG上DP","斜率优化DP","四边形不等式优化",
+    "树","二叉树","并查集","树状数组BIT","线段树","主席树","可持久化线段树","堆","优先队列","单调栈","单调队列","分块","莫队","根号分治","平衡树","Treap","Splay","SqrtTree","跳跃表",
+    "图论","Dijkstra","Bellman-Ford","SPFA","Floyd","最小生成树Prim","Kruskal","拓扑排序","强连通分量Tarjan","Kosaraju","双连通分量","LCA","树上差分","欧拉回路","哈密顿回路","二分图","匈牙利算法","KM算法","网络流","最大流","最小割","费用流","2-SAT","重链剖分","点分治","边分治",
+    "KMP","Z函数","字符串哈希","Rabin-Karp","字典树Trie","AC自动机","SAM后缀自动机","广义SAM","后缀数组SA","后缀树","后缀平衡树","Manacher","回文自动机PAM","Lyndon分解","最小表示法","Boyer-Moore","有限状态自动机DFA/NFA","序列自动机",
+    "数论","gcd/exgcd","快速幂","欧拉函数","费马小定理","逆元","质因数分解","筛法","MillerRabin","PollardRho","离散对数","原根","卢卡斯定理","中国剩余定理CRT",
+    "组合数学","容斥原理","Catalan数","Stirling数","Burnside","Polya","母函数","二项式定理","鸽巢原理","博弈论","Nim","SG函数",
+    "计算几何","凸包","半平面交","极角排序","最近点对","最小圆覆盖","Pick定理",
+    "多项式","FFT","NTT","BM线性递推","高斯消元","矩阵快速幂","行列式",
+    "其他"
+];
+// ========== 独立：题目特点标签 ==========
+const FEATURE_TAG_PRESET = [
+    "错题本","老题","新题","疑似错题","新考法","变式题","原创题目","错题","过时题目","卡常","原错题本题目","爆0","每日一题","随机抽题","检测出题","可能题目","考前预测","对应训练","压轴题目","押中题目","近义题目","思维题","求证题","固定答案题目","题面为答案的题目","水题","作业","占位符类题目","拟发布题目","未定义"
+];
+const STATUS_MAP = {
+    "AC":["AC","ACCEPT","ACCEPTED"],
+    "WA":["WA","WRONGANSWER","UNACCEPTED"],
+    "RE":["RE","RUNTIMEERROR","RUNTIMEERROR"],
+    "CE":["CE","COMPILEDERROR","COMPILATIONERROR","COMPILEERROR"],
+    "PE":["PE","PRESENTATIONERROR"],
+    "OLE":["OLE","OUTPUTLIMITEXCEEDED"],
+    "MLE":["MLE","MEMORYLIMITEXCEEDED"],
+    "TLE":["TLE","TIMELIMITEXCEEDED"],
+    "PC":["PC","PARTIALLYCORRECT"],
+    "UKE":["UKE","UNKNOWNERROR"]
+};
+const STATUS_NAME = {
+    AC:"通过",WA:"答案错误",RE:"运行时失败",CE:"编译错误",PE:"格式错误",
+    OLE:"输出超限",MLE:"内存超限",TLE:"时间超限",PC:"部分正确",UKE:"未知错误"
+};
+// ========== 全新补全平台/比赛内置列表（按需求完整录入） ==========
+const BUILTIN_PLATFORMS = [
+    "AcWing","AcWing因噗奥噗","AcWing每日一题","AcWing课程（其他课程内题目请选择此项）","AcWing：AC Saber（天梯）",
+    "洛谷","洛谷有题","洛谷网校","洛谷月赛","洛谷训练营","洛谷邀请赛","洛谷团队比赛","洛谷校园赛",
+    "CodeForces","LeetCode","信息学奥赛一本通",
+ 	"GESP","CSP-J","CSP-S","CSP-X","CSP未定",
+    "IOI","NOI","NOIP未定","NOIP普及","NOIP提高",
+    "蓝桥杯青少年组","蓝桥杯省赛","蓝桥杯国赛","蓝桥杯未定",
+ 	"PAT","USACO","考研","面试","个人开发","AI出题","模拟赛",
+ 	"睿抗RAICOM","加拿大CCO","加拿大CCC","机器人编程","硬件编程","LinkBoy",
+    "kuangbin","Hydro","SPOJ","AtCoder","UVa","省选","集训队","CTT集训","WC","CTSC及CTS","APIO","夏令营及冬令营",
+    "EC Final","NERC及NEERC","SEERC","CERC","NWRRC","WF","NAC","SWERC","国际赛事及赛区","国内赛事及赛区",
+    "校园专用OJ","集训队专用OJ","自行组建的OJ","Long Long OJ（已关停）","Sleeping Cup","Ynoi","POI","eJOI","CEOI","JOI","COCI","AGM","ROIR","COI","NOISG","NordicOI","PA","BalticOI","ROI","KOI","EGOI","BalkanOI","INOI","UOI","JOISC及JOIST","COTS","Moscow Olympiad","KTSC","MCC及MCO","IATI",
+    "Google Kick Start","PO","PAIO","Google Code Jam","邀请赛","友谊赛","高校赛","ABC",
+    "CCPC","CSPro","THUPC","ICPC","传智杯","大学竞赛","THUSC","科大国创杯","Code+","THUWC","BCSP-X",
+    "自行比拼","企业内能力检测","其他能力检测","能力筛选","随机抽题","网题","CSDN","博客园",
+ 	"初中活动","小学活动","校内测评","题目存档站","其他OJ","其他","未定","已关停站点","老OJ"
+];
+
+// ========== IndexedDB ==========
+let db = null;
+const DB_NAME = "OJRecordDB";
+const DB_VERSION = 1;
+const STORE_RECORDS = "records";
+const STORE_META = "meta";
+async function openDB(){
+    return new Promise((resolve,reject)=>{
+        const req = indexedDB.open(DB_NAME,DB_VERSION);
+        req.onupgradeneeded=e=>{
+            const d=e.target.result;
+            if(!d.objectStoreNames.contains(STORE_RECORDS)) d.createObjectStore(STORE_RECORDS,{keyPath:"id"});
+            if(!d.objectStoreNames.contains(STORE_META)) d.createObjectStore(STORE_META,{keyPath:"key"});
+        }
+        req.onsuccess=e=>{db=e.target.result;resolve(db)};
+        req.onerror=e=>reject(e.target.error);
+    })
+}
+async function getAllRecords(){const tx=db.transaction(STORE_RECORDS,"readonly");return getAllFromStore(tx.objectStore(STORE_RECORDS))}
+async function putRecord(item){const tx=db.transaction(STORE_RECORDS,"readwrite");await tx.objectStore(STORE_RECORDS).put(item)}
+async function delRecordById(id){const tx=db.transaction(STORE_RECORDS,"readwrite");await tx.objectStore(STORE_RECORDS).delete(id)}
+async function clearRecordStore(){const tx=db.transaction(STORE_RECORDS,"readwrite");await tx.objectStore(STORE_RECORDS).clear()}
+async function getMeta(key){const tx=db.transaction(STORE_META,"readonly");const r=await tx.objectStore(STORE_META).get(key);return r?.value??null}
+async function setMeta(key,value){const tx=db.transaction(STORE_META,"readwrite");await tx.objectStore(STORE_META).put({key,value})}
+async function getAllFromStore(store){return new Promise((res,rej)=>{const req=store.getAll();req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}
+
+// ========== 全局变量 ==========
+let records = [];
+let customPlatforms = [];
+let currentTestRecordId = null;
+let testState = [];
+let testHistory = [];
+const TEST_COUNT_DEFAULT = 200;
+let renderLock = false; // 防重入锁，解决高频点击/滑动反复渲染卡死抖动
+
+// ========== Markdown + LaTeX 渲染函数 ==========
+function renderMdLatex(raw){
+    if(!raw) return "";
+    let html = marked.parse(raw);
+    html = html.replace(/\$([^\$]+)\$/g, (m, g) => {
+        try { return katex.renderToString(g, {throwOnError:false}) } catch { return m; }
+    });
+    html = html.replace(/\$\$([^\$]+)\$\$/g, (m, g) => {
+        try { return `<div class="latex-block">${katex.renderToString(g, {throwOnError:false,displayMode:true})}</div>` } catch { return m; }
+    });
+    return `<div class="markdown-render">${html}</div>`;
+}
+
+// ========== 主题切换 ==========
+function initTheme(){
+    const t = localStorage.getItem("oj_theme")||"dark";
+    if(t==="light") document.body.classList.add("light");
+    document.getElementById("toggleTheme").onclick=()=>{
+        document.body.classList.toggle("light");
+        localStorage.setItem("oj_theme", document.body.classList.contains("light")?"light":"dark");
+        renderHeatmap();
+    }
+}
+
+// ========== 初始化 ==========
+async function init(){
+    await openDB();
+    records = await getAllRecords();
+    customPlatforms = await getMeta("customPlatforms") || [];
+    initTheme();
+    bindTabs();
+    fillTagPresetSelect();
+    fillFeatureTagPresetSelect();
+    renderPlatformSelect();
+    renderFilterOptions();
+    renderRecords();
+    renderStats();
+    renderHeatmap();
+    fillSolutionSelect();
+    setDefaultTime();
+}
+function fillTagPresetSelect(){
+    const sel = document.getElementById("tagPreset");
+    TAG_PRESET.forEach(t=>sel.innerHTML+=`<option value="${t}">${t}</option>`);
+}
+function fillFeatureTagPresetSelect(){
+    const sel = document.getElementById("featureTagPreset");
+    FEATURE_TAG_PRESET.forEach(t=>sel.innerHTML+=`<option value="${t}">${t}</option>`);
+}
+function appendTag(){
+    const s = document.getElementById("tagPreset").value;
+    if(!s) return;
+    const raw = document.getElementById("tagsRaw").value.trim();
+    const arr = raw.split(/[,，]/).map(x=>x.trim()).filter(x=>x);
+    if(!arr.includes(s)) arr.push(s);
+    document.getElementById("tagsRaw").value = arr.join(",");
+}
+function appendFeatureTag(){
+    const s = document.getElementById("featureTagPreset").value;
+    if(!s) return;
+    const raw = document.getElementById("featureTagsRaw").value.trim();
+    const arr = raw.split(/[,，]/).map(x=>x.trim()).filter(x=>x);
+    if(!arr.includes(s)) arr.push(s);
+    document.getElementById("featureTagsRaw").value = arr.join(",");
+}
+async function migrateLocalStorage(){
+    const oldRec = localStorage.getItem("oj_records");
+    const oldPf = localStorage.getItem("oj_custom_platforms");
+    if(!oldRec && !oldPf) return alert("无旧localStorage数据");
+    if(oldRec){
+        const arr = JSON.parse(oldRec);
+        for(const r of arr) {
+            if(!Array.isArray(r.featureTags)) r.featureTags = [];
+            await putRecord(r);
+        }
+    }
+    if(oldPf){
+        customPlatforms = JSON.parse(oldPf);
+        await setMeta("customPlatforms", customPlatforms);
+    }
+    records = await getAllRecords();
+    renderPlatformSelect();renderFilterOptions();renderRecords();renderStats();renderHeatmap();fillSolutionSelect();
+    alert("迁移完成！");
+}
+function setDefaultTime(){
+    const now = new Date();
+    const tzOffset = now.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(now - tzOffset)).toISOString().slice(0,16);
+    document.getElementById("submitTime").value = localISOTime;
+}
+function normalizeStatus(raw){
+    const s = raw.replace(/\s+/g,"").toUpperCase();
+    for(const [key,arr] of Object.entries(STATUS_MAP)) if(arr.includes(s)) return key;
+    return "UKE";
+}
+function getAllPlatforms(){return [...BUILTIN_PLATFORMS, ...customPlatforms]}
+function renderPlatformSelect(){
+    const sel = document.getElementById("platform");
+    sel.innerHTML = "";
+    getAllPlatforms().forEach(x=>sel.innerHTML += `<option value="${x}">${x}</option>`);
+}
+async function addCustomPlatform(){
+    const v = document.getElementById("newPlatform").value.trim();
+    if(!v) return;
+    if(getAllPlatforms().includes(v)) return alert("已存在");
+    customPlatforms.push(v);
+    await setMeta("customPlatforms", customPlatforms);
+    renderPlatformSelect();renderFilterOptions();
+    document.getElementById("newPlatform").value="";
+}
+async function addRecord(){
+    const status = normalizeStatus(document.getElementById("statusRaw").value.trim());
+    const tagsRaw = document.getElementById("tagsRaw").value;
+    const tags = tagsRaw.split(/[,，]/).map(x=>x.trim()).filter(x=>x);
+    const ftRaw = document.getElementById("featureTagsRaw").value;
+    const featureTags = ftRaw.split(/[,，]/).map(x=>x.trim()).filter(x=>x);
+    const diffVal = Number(document.getElementById("diffVal").value);
+    if(document.getElementById("diffVal").value && (!Number.isInteger(diffVal) || diffVal<0 || diffVal>5000)) return alert("难度数值必须是0~5000整数");
+    const markType = document.getElementById("markType").value;
+    const totalScore = Number(document.getElementById("totalScore").value||0);
+    const timeComplex = document.getElementById("timeComplex").value.trim();
+    const item = {
+        id: Date.now().toString(),
+        title: document.getElementById("title").value.trim(),
+        problemUrl: document.getElementById("problemUrl").value.trim(),
+        desc: document.getElementById("desc").value.trim(),
+        timeComplex,
+        diffText: document.getElementById("diffText").value,
+        diffVal: diffVal||null,
+        status,
+        platform: document.getElementById("platform").value,
+        tags,
+        featureTags,
+        submitTime: document.getElementById("submitTime").value,
+        markType,
+        totalScore,
+        testPoints: Array(TEST_COUNT_DEFAULT).fill("AC"),
+        solutions: []
+    };
+    await putRecord(item);
+    records = await getAllRecords();
+    renderFilterOptions();renderRecords();renderStats();renderHeatmap();fillSolutionSelect();
+    alert("添加成功");
+}
+async function fetchUrlResult(){
+	const url = document.getElementById("importUrl").value.trim();
+	const msgBox = document.getElementById("urlImportMsg");
+	msgBox.textContent="";
+	if(!url) return msgBox.textContent="请输入URL";
+
+	// 新增：拦截洛谷域名
+	try {
+		const u = new URL(url);
+		if (u.hostname === "www.luogu.com" || u.hostname === "www.luogu.com.cn") {
+			msgBox.textContent = "拒绝请求：根据洛谷相关协议，暂时停止对洛谷评测记录的URL导入服务。";
+			return;
+		}
+	} catch (_) {
+		// 不是合法URL，继续走原有逻辑
+	}
+
+	try{
+		const res = await fetch(url);
+		if(!res.ok){
+			msgBox.textContent = `请求失败，HTTP码：${res.status} ${res.statusText}`;
+			return;
+		}
+		msgBox.textContent = `请求成功 HTTP ${res.status}；本程序无自动解析器，请手动录入评测信息`;
+	}catch(e){
+		msgBox.textContent = `网络异常：${e.message}`;
+	}
+}
+function renderFilterOptions(){
+    const pfSel = document.getElementById("filterPlatform");
+    const stSel = document.getElementById("filterStatus");
+    const tagSel = document.getElementById("filterTag");
+    const ftSel = document.getElementById("filterFeatureTag");
+    pfSel.innerHTML = `<option value="">全部平台</option>`;
+    getAllPlatforms().forEach(x=>pfSel.innerHTML += `<option value="${x}">${x}</option>`);
+    stSel.innerHTML = `<option value="">全部状态</option>`;
+    Object.keys(STATUS_MAP).forEach(k=>stSel.innerHTML += `<option value="${k}">${k} ${STATUS_NAME[k]}</option>`);
+    const allTags = new Set();
+    const allFTags = new Set();
+    records.forEach(r=>{
+        (r.tags||[]).forEach(t=>allTags.add(t));
+        (r.featureTags||[]).forEach(t=>allFTags.add(t));
+    });
+    tagSel.innerHTML = `<option value="">全部算法标签</option>`;
+    [...allTags].sort().forEach(t=>tagSel.innerHTML += `<option value="${t}">${t}</option>`);
+    ftSel.innerHTML = `<option value="">全部特点标签</option>`;
+    [...allFTags].sort().forEach(t=>ftSel.innerHTML += `<option value="${t}">${t}</option>`);
+}
+function getFilteredList(){
+    const fp = document.getElementById("filterPlatform").value;
+    const fs = document.getElementById("filterStatus").value;
+    const ft = document.getElementById("filterTag").value;
+    const fft = document.getElementById("filterFeatureTag").value;
+    const fm = document.getElementById("filterMark").value;
+    return records.filter(r=>{
+        if(fp && r.platform!==fp) return false;
+        if(fs && r.status!==fs) return false;
+        if(ft && !(r.tags||[]).includes(ft)) return false;
+        if(fft && !(r.featureTags||[]).includes(fft)) return false;
+        if(fm && r.markType!==fm) return false;
+        return true;
+    })
+}
+function resetFilter(){
+    document.getElementById("filterPlatform").value="";
+    document.getElementById("filterStatus").value="";
+    document.getElementById("filterTag").value="";
+    document.getElementById("filterFeatureTag").value="";
+    document.getElementById("filterMark").value="";
+    renderRecords();
+}
+function renderRecords(){
+    if(renderLock) return;
+    renderLock = true;
+    const list = getFilteredList();
+    const box = document.getElementById("recordList");
+    if(!list.length){box.innerHTML="<p>暂无记录</p>";renderLock=false;return;}
+    const markName = {normal:"普通",wrong:"错题",suspect:"疑似错题"};
+    box.innerHTML = list.map(r=>`
+        <div class="record-item status-${r.status}" ${r.markType==="wrong"?"mark-wrong":""} ${r.markType==="suspect"?"mark-suspect":""}>
+            <div style="display:flex;justify-content:space-between">
+                <strong>${escapeHtml(r.title)||"无标题"}</strong>
+                <span>${r.status}｜${STATUS_NAME[r.status]}｜${markName[r.markType]}</span>
+            </div>
+            <small>${r.submitTime || "未填写时间"} · ${escapeHtml(r.platform)} ${r.diffText?"｜"+r.diffText:""} ${r.diffVal!==null?"｜难度值:"+r.diffVal:""} ${r.timeComplex?"｜复杂度:"+escapeHtml(r.timeComplex):""} 总分:${r.totalScore||0}</small>
+            <div>${(r.tags||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>
+            <div>${(r.featureTags||[]).map(t=>`<span class="feature-tag">${escapeHtml(t)}</span>`).join("")}</div>
+            <div class="flex-row" style="margin-top:6px">
+                ${r.problemUrl?`<a href="${r.problemUrl}" target="_blank"><button>🔗 前往重刷</button></a>`:""}
+                <button onclick="openTestModal('${r.id}')">🧪 测试点</button>
+                <button onclick="toggleMark('${r.id}')">切换标记</button>
+                <button onclick="viewDesc('${r.id}')">📖 查看题面</button>
+                <button class="danger" onclick="delRec('${r.id}')">删除</button>
+            </div>
+        </div>
+    `).join("");
+    requestAnimationFrame(()=>{renderLock=false;});
+}
+function viewDesc(id){
+    const rec = records.find(x=>x.id===id);
+    if(!rec) return;
+    alert("题面预览（支持Markdown+LaTeX）：\n"+rec.desc);
+}
+function renderWrongList(){
+    if(renderLock) return;
+    renderLock = true;
+    const wList = records.filter(x=>x.markType==="wrong"||x.markType==="suspect");
+    const box = document.getElementById("wrongList");
+    const markName = {normal:"普通",wrong:"错题",suspect:"疑似错题"};
+    if(!wList.length){box.innerHTML="<p>错题/疑似错题为空</p>";renderLock=false;return;}
+    box.innerHTML = wList.map(r=>`
+        <div class="record-item status-${r.status}" ${r.markType==="wrong"?"mark-wrong":""} ${r.markType==="suspect"?"mark-suspect":""}>
+            <div style="display:flex;justify-content:space-between">
+                <strong>${escapeHtml(r.title)||"无标题"}</strong>
+                <span>${r.status}｜${STATUS_NAME[r.status]}｜${markName[r.markType]}</span>
+            </div>
+            <small>${r.submitTime || "未填写时间"} · ${escapeHtml(r.platform)} ${r.diffText?"｜"+r.diffText:""} ${r.diffVal!==null?"｜难度值:"+r.diffVal:""} ${r.timeComplex?"｜复杂度:"+escapeHtml(r.timeComplex):""} 总分:${r.totalScore||0}</small>
+            <div>${(r.tags||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>
+            <div>${(r.featureTags||[]).map(t=>`<span class="feature-tag">${escapeHtml(t)}</span>`).join("")}</div>
+            <div class="flex-row" style="margin-top:6px">
+                ${r.problemUrl?`<a href="${r.problemUrl}" target="_blank"><button>🔗 前往重刷</button></a>`:""}
+                <button onclick="openTestModal('${r.id}')">🧪 测试点</button>
+                <button onclick="toggleMark('${r.id}')">切换标记</button>
+                <button onclick="viewDesc('${r.id}')">📖 查看题面</button>
+            </div>
+        </div>
+    `).join("");
+    requestAnimationFrame(()=>{renderLock=false;});
+}
+async function toggleMark(id){
+    const it = records.find(x=>x.id===id);
+    if(!it) return;
+    const order = ["normal","wrong","suspect"];
+    const idx = order.indexOf(it.markType);
+    it.markType = order[(idx+1)%3];
+    await putRecord(it);
+    records = await getAllRecords();
+    renderRecords();renderWrongList();renderStats();
+}
+async function delRec(id){
+    if(!confirm("确定删除？")) return;
+    await delRecordById(id);
+    records = await getAllRecords();
+    renderFilterOptions();renderRecords();renderWrongList();renderStats();renderHeatmap();fillSolutionSelect();
+}
+function renderStats(){
+    const stCnt = {};
+    Object.keys(STATUS_MAP).forEach(k=>stCnt[k]=0);
+    records.forEach(r=>stCnt[r.status]++);
+    const total = records.length;
+    let stHtml = "";
+    Object.entries(stCnt).forEach(([k,v])=>{
+        const pct = total ? (v/total*100).toFixed(1) : 0;
+        stHtml += `<div class="stat-row"><span>${k} ${STATUS_NAME[k]}</span><span>${v}条 (${pct}%)</span></div>`;
+    })
+    document.getElementById("statStatus").innerHTML = stHtml;
+    const tagCnt = {};
+    const ftagCnt = {};
+    records.forEach(r=>{
+        (r.tags||[]).forEach(t=>tagCnt[t]=(tagCnt[t]||0)+1);
+        (r.featureTags||[]).forEach(t=>ftagCnt[t]=(ftagCnt[t]||0)+1);
+    });
+    let tagHtml = "";
+    Object.entries(tagCnt).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
+        tagHtml += `<div class="stat-row"><span>${escapeHtml(k)}</span><span>${v}条</span></div>`;
+    })
+    document.getElementById("statTag").innerHTML = tagHtml || "<p>暂无算法标签</p>";
+    let ftagHtml = "";
+    Object.entries(ftagCnt).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
+        ftagHtml += `<div class="stat-row"><span>${escapeHtml(k)}</span><span>${v}条</span></div>`;
+    })
+    document.getElementById("statFeatureTag").innerHTML = ftagHtml || "<p>暂无特点标签</p>";
+    const pfCnt = {};
+    records.forEach(r=>pfCnt[r.platform]=(pfCnt[r.platform]||0)+1);
+    let pfHtml = "";
+    Object.entries(pfCnt).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
+        pfHtml += `<div class="stat-row"><span>${escapeHtml(k)}</span><span>${v}条</span></div>`;
+    })
+    document.getElementById("statPlatform").innerHTML = pfHtml || "<p>暂无平台记录</p>";
+}
+function renderHeatmap(){
+    if(renderLock) return;
+    renderLock = true;
+    const dayMap = {};
+    records.forEach(r=>{
+        if(!r.submitTime) return;
+        const d = r.submitTime.split("T")[0];
+        dayMap[d] = (dayMap[d]||0)+1;
+    })
+    const cells = [];
+    const now = new Date();
+    for(let i=364;i>=0;i--){
+        const dt = new Date(now);
+        dt.setDate(dt.getDate()-i);
+        const ds = dt.toISOString().slice(0,10);
+        const cnt = dayMap[ds] || 0;
+        let lv = 0;
+        if(cnt>=1) lv=1;
+        if(cnt>=3) lv=2;
+        if(cnt>=6) lv=3;
+        if(cnt>=10) lv=4;
+        if(cnt>=15) lv=5;
+        cells.push(`<div class="heat-cell heat-${lv}" title="${ds}：${cnt}条提交"></div>`);
+    }
+    document.getElementById("heatmapBox").innerHTML = cells.join("");
+    requestAnimationFrame(()=>{renderLock=false;});
+}
+function bindTabs(){
+    document.querySelectorAll(".tab").forEach(tab=>{
+        tab.onclick = ()=>{
+            const parent = tab.parentElement;
+            parent.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+            tab.classList.add("active");
+            const type = tab.dataset.tab;
+            const view = tab.dataset.view;
+            if(type){
+                document.getElementById("tab-manual").classList.toggle("hidden", type!="manual");
+                document.getElementById("tab-url").classList.toggle("hidden", type!="url");
+            }
+            if(view){
+                document.getElementById("view-records").classList.add("hidden");
+                document.getElementById("view-stats").classList.add("hidden");
+                document.getElementById("view-heat").classList.add("hidden");
+                document.getElementById("view-wrong").classList.add("hidden");
+                document.getElementById("view-solution").classList.add("hidden");
+                document.getElementById(`view-${view}`).classList.remove("hidden");
+                if(view==="wrong") renderWrongList();
+                if(view==="heat") renderHeatmap();
+                if(view==="solution") fillSolutionSelect();
+            }
+        }
+    })
+}
+// ========== 题解管理（支持多篇题解） ==========
+function fillSolutionSelect(){
+    const sel = document.getElementById("solSelect");
+    sel.innerHTML = `<option value="">请选择题目</option>`;
+    records.forEach(r=>sel.innerHTML += `<option value="${r.id}">${escapeHtml(r.title||"无标题")}</option>`);
+    renderSolutionPanel();
+}
+function renderSolutionPanel(){
+    const sid = document.getElementById("solSelect").value;
+    const panel = document.getElementById("solPanel");
+    if(!sid){ panel.innerHTML="<p>请从上方选择题目</p>";return; }
+    const rec = records.find(x=>x.id===sid);
+    if(!rec) return;
+    if(!Array.isArray(rec.solutions)) rec.solutions = [];
+    let html = `<h4>题目：${escapeHtml(rec.title)}</h4>`;
+    html += `<div style="margin:8px 0"><button onclick="addNewSolution('${sid}')">➕ 新增一篇题解</button></div>`;
+    rec.solutions.forEach((sol,idx)=>{
+        html += `<div class="solution-item">
+            <div class="solution-title">题解 #${idx+1}｜${escapeHtml(sol.title||"无题解标题")}</div>
+            <div>${renderMdLatex(sol.content)}</div>
+            <div class="solution-ctrl flex-row">
+                <button onclick="editSolution('${sid}',${idx})">✏️编辑</button>
+                <button class="danger" onclick="delSolution('${sid}',${idx})">🗑删除</button>
+            </div>
+        </div>`;
+    });
+    panel.innerHTML = html;
+}
+async function addNewSolution(sid){
+    const rec = records.find(x=>x.id===sid);
+    if(!rec) return;
+    const stitle = prompt("题解标题：");
+    if(stitle===null) return;
+    const scontent = prompt("题解正文（支持Markdown+LaTeX）：");
+    if(scontent===null) return;
+    rec.solutions.push({
+        title: stitle.trim(),
+        content: scontent.trim(),
+        createAt: new Date().toISOString()
+    });
+    await putRecord(rec);
+    records = await getAllRecords();
+    renderSolutionPanel();
+}
+async function editSolution(sid,idx){
+    const rec = records.find(x=>x.id===sid);
+    if(!rec || !rec.solutions[idx]) return;
+    const stitle = prompt("修改题解标题：", rec.solutions[idx].title);
+    if(stitle===null) return;
+    const scontent = prompt("修改题解正文：", rec.solutions[idx].content);
+    if(scontent===null) return;
+    rec.solutions[idx].title = stitle.trim();
+    rec.solutions[idx].content = scontent.trim();
+    await putRecord(rec);
+    records = await getAllRecords();
+    renderSolutionPanel();
+}
+async function delSolution(sid,idx){
+    if(!confirm("确定删除这篇题解？")) return;
+    const rec = records.find(x=>x.id===sid);
+    if(!rec || !rec.solutions[idx]) return;
+    rec.solutions.splice(idx,1);
+    await putRecord(rec);
+    records = await getAllRecords();
+    renderSolutionPanel();
+}
+// ========== 测试点弹窗逻辑 ==========
+function openTestModal(id){
+    const rec = records.find(x=>x.id===id);
+    if(!rec) return;
+    currentTestRecordId = id;
+    testState = [...(rec.testPoints || Array(TEST_COUNT_DEFAULT).fill("AC"))];
+    testHistory = [];
+    renderTestGrid();
+    document.getElementById("testModal").classList.add("show");
+}
+function closeTestModal(){
+    document.getElementById("testModal").classList.remove("show");
+    currentTestRecordId = null;
+}
+function renderTestGrid(){
+    const box = document.getElementById("testGridBox");
+    const seq = ["AC","WA","UNK"];
+    box.innerHTML = testState.map((s,i)=>{
+        const cls = s==="AC"?"t-ac":s==="WA"?"t-wa":"t-unk";
+        return `<div class="test-cell ${cls}" onclick="clickTest(${i})">${i+1}</div>`
+    }).join("");
+    const acCnt = testState.filter(x=>x==="AC").length;
+    const total = testState.length;
+    const rec = records.find(x=>x.id===currentTestRecordId);
+    const score = rec?.totalScore||0;
+    const getScore = total? (acCnt/total*score).toFixed(1):0;
+    document.getElementById("testScoreInfo").innerText = `AC:${acCnt}/${total} 得分预估:${getScore}`;
+}
+function clickTest(idx){
+    testHistory.push([...testState]);
+    const order = ["AC","WA","UNK"];
+    const cur = testState[idx];
+    const p = order.indexOf(cur);
+    testState[idx] = order[(p+1)%3];
+    saveTestState();
+    renderTestGrid();
+}
+function undoTest(){
+    if(!testHistory.length) return alert("无可撤销记录");
+    testState = testHistory.pop();
+    saveTestState();
+    renderTestGrid();
+}
+function resetTest(){
+    if(!confirm("恢复全部测试点为AC？")) return;
+    testHistory.push([...testState]);
+    testState = Array(testState.length).fill("AC");
+    saveTestState();
+    renderTestGrid();
+}
+async function saveTestState(){
+    const rec = records.find(x=>x.id===currentTestRecordId);
+    if(!rec) return;
+    rec.testPoints = [...testState];
+    await putRecord(rec);
+    records = await getAllRecords();
+}
+// ========== 导入导出 ==========
+function exportData(){
+    const payload = {records,customPlatforms};
+    const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `oj_record_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+async function importData(fileInput){
+    const f = fileInput.files[0];
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = async e=>{
+        try{
+            const data = JSON.parse(e.target.result);
+            if(!data.records || !data.customPlatforms) return alert("文件格式不对");
+            await clearRecordStore();
+            for(const item of data.records) {
+                if(!Array.isArray(item.featureTags)) item.featureTags = [];
+                if(!Array.isArray(item.solutions)) item.solutions = [];
+                await putRecord(item);
+            }
+            customPlatforms = data.customPlatforms;
+            await setMeta("customPlatforms", customPlatforms);
+            records = await getAllRecords();
+            renderPlatformSelect();renderFilterOptions();renderRecords();renderWrongList();renderStats();renderHeatmap();fillSolutionSelect();
+            alert("导入成功");
+        }catch(err){alert("JSON解析失败");}
+    }
+    r.readAsText(f);
+}
+async function clearAll(){
+    if(!confirm("确定清空全部记录和自定义平台？无法恢复！")) return;
+    await clearRecordStore();
+    customPlatforms = [];
+    await setMeta("customPlatforms", []);
+    records = [];
+    renderPlatformSelect();renderFilterOptions();renderRecords();renderWrongList();renderStats();renderHeatmap();fillSolutionSelect();
+}
+function escapeHtml(s){
+    if(!s) return "";
+    return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+window.onload = init;
+</script>
+ </body>
+</html>
